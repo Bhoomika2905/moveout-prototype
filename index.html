@@ -1,0 +1,1044 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>MoveOut Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: prototype task bar on top, app header, then a two-column app body (filters | results, list | chat, photo | form) that stacks on phones. */
+:root{
+  --bg:#eef2f0; --surface:#ffffff; --sunk:#e3e9e6; --ink:#15211d; --muted:#5a6b64; --line:#d3dcd8;
+  --brand:#0e5a47; --brand-2:#0b4a3a; --on-brand:#ffffff;
+  --box:#d9b98f; --box-2:#efe0c9; --box-ink:#5b3f1d;
+  --ai:#5b47c8; --ai-bg:#ecebfb;
+  --ok:#1d7a4a; --ok-bg:#e1f3e8; --warn:#9a5b00; --warn-bg:#fdf0d8; --bad:#b3261e; --bad-bg:#fbe5e3;
+  --t1:#e6ddcf; --t2:#d7e5df; --t3:#dfe0ee; --t4:#ecdcd6; --art:#3a4a44;
+  --proto:#15211d; --on-proto:#e8efec;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r:10px; --r-sm:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1412; --surface:#161f1c; --sunk:#1d2824; --ink:#e4ebe8; --muted:#97a8a1; --line:#2b3833;
+  --brand:#4fc4a1; --brand-2:#6fd6b6; --on-brand:#06261d;
+  --box:#8a6a45; --box-2:#3a2f22; --box-ink:#f0d9b8;
+  --ai:#ab9cff; --ai-bg:#26213f;
+  --ok:#6fd39b; --ok-bg:#17301f; --warn:#f2b552; --warn-bg:#33270f; --bad:#ff8f86; --bad-bg:#3a1a18;
+  --t1:#2c2822; --t2:#1f2c27; --t3:#24253a; --t4:#30231f; --art:#c5d2cc;
+  --proto:#050807; --on-proto:#cfdcd6; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e1412; --surface:#161f1c; --sunk:#1d2824; --ink:#e4ebe8; --muted:#97a8a1; --line:#2b3833;
+  --brand:#4fc4a1; --brand-2:#6fd6b6; --on-brand:#06261d;
+  --box:#8a6a45; --box-2:#3a2f22; --box-ink:#f0d9b8;
+  --ai:#ab9cff; --ai-bg:#26213f;
+  --ok:#6fd39b; --ok-bg:#17301f; --warn:#f2b552; --warn-bg:#33270f; --bad:#ff8f86; --bad-bg:#3a1a18;
+  --t1:#2c2822; --t2:#1f2c27; --t3:#24253a; --t4:#30231f; --art:#c5d2cc;
+  --proto:#050807; --on-proto:#cfdcd6; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.75rem;font-weight:800}
+h2{font-size:1.25rem;font-weight:700}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--brand)}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+:focus-visible{outline:3px solid var(--ai);outline-offset:2px;border-radius:4px}
+.price,.num{font-variant-numeric:tabular-nums}
+
+/* prototype bar */
+.proto{background:var(--proto);color:var(--on-proto);font-size:.82rem}
+.proto .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding-block:8px}
+.proto b{font-family:var(--display);letter-spacing:.06em;text-transform:uppercase;font-size:.72rem;opacity:.75}
+.task{background:transparent;border:1px solid color-mix(in srgb,var(--on-proto) 30%,transparent);color:var(--on-proto);border-radius:99px;padding:3px 11px;cursor:pointer}
+.task:hover{background:color-mix(in srgb,var(--on-proto) 12%,transparent)}
+.task span{opacity:.6;margin-right:4px}
+.proto .sp{flex:1}
+.switch{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.switch input{accent-color:var(--bad)}
+.linkbtn{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0}
+
+/* header */
+header.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--proto)}
+header.top .wrap{display:flex;align-items:center;gap:18px;padding-block:10px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:800;font-size:1.3rem;color:var(--ink);text-decoration:none;letter-spacing:-.02em}
+.logo .mark{width:30px;height:30px;border-radius:7px;background:var(--box);color:var(--box-ink);display:grid;place-items:center}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--line);border-radius:99px;background:var(--sunk)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+nav.main{display:flex;gap:4px;flex-wrap:wrap}
+nav.main a{position:relative;padding:7px 12px;border-radius:99px;text-decoration:none;color:var(--muted);font-weight:500}
+nav.main a:hover{background:var(--sunk);color:var(--ink)}
+nav.main a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+nav.main a.sell{background:var(--brand);color:var(--on-brand)}
+nav.main a.sell[aria-current="page"]{background:var(--brand-2)}
+.badge-n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:5px;border-radius:99px;background:var(--bad);color:#fff;font-size:.7rem;font-weight:600}
+.me{display:flex;align-items:center;gap:8px;font-size:.82rem}
+.av{width:32px;height:32px;border-radius:50%;background:var(--t3);display:grid;place-items:center;font-weight:600;font-size:.8rem;flex:none}
+.verified{display:inline-flex;align-items:center;gap:4px;color:var(--ok);font-weight:500;font-size:.8rem}
+
+main{padding-block:24px 64px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 16px;border-radius:var(--r-sm);border:1px solid transparent;background:var(--brand);color:var(--on-brand);font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--brand-2)}
+.btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:var(--sunk)}
+.btn.ai{background:var(--ai);color:#fff}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.text{background:none;color:var(--muted);padding:9px 8px}
+.btn.text:hover{color:var(--ink)}
+.btn.sm{padding:6px 11px;font-size:.85rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:600;white-space:nowrap}
+.pill.available{background:var(--ok-bg);color:var(--ok)}
+.pill.pending{background:var(--warn-bg);color:var(--warn)}
+.pill.sold{background:var(--bad-bg);color:var(--bad)}
+.pill.ai{background:var(--ai-bg);color:var(--ai)}
+.pill.edited{background:var(--sunk);color:var(--muted)}
+.pill.mine{background:var(--box-2);color:var(--box-ink)}
+.pill.wait{background:var(--warn-bg);color:var(--warn)}
+
+/* art */
+.thumb{position:relative;aspect-ratio:4/3;max-width:100%;display:grid;place-items:center;color:var(--art);overflow:hidden}
+.thumb svg{width:62%;height:auto}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.tone1{background:var(--t1)}.tone2{background:var(--t2)}.tone3{background:var(--t3)}.tone4{background:var(--t4)}
+.art .h{fill:var(--surface)}
+
+/* browse */
+.browse{display:grid;grid-template-columns:250px minmax(0,1fr);gap:28px;align-items:start}
+.filters{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:20px;position:sticky;top:84px}
+.fgroup{display:flex;flex-direction:column;gap:8px}
+.flabel{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.chipset{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:.84rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.check{display:flex;align-items:center;gap:8px;font-size:.9rem;cursor:pointer}
+.check input{accent-color:var(--brand);width:16px;height:16px}
+input[type=range]{width:100%;accent-color:var(--brand)}
+.rangeval{display:flex;justify-content:space-between;font-size:.85rem}
+.res-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.res-tools{display:flex;gap:10px;align-items:center}
+select,.input,textarea{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:8px 10px}
+.active-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:0}
+.active-chips button{border:0;background:var(--sunk);border-radius:99px;padding:3px 10px;font-size:.8rem;cursor:pointer}
+.active-chips button::after{content:" ×";color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .15s, box-shadow .15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 6px 18px color-mix(in srgb,var(--ink) 10%,transparent)}
+.card .body{padding:11px 13px 13px;display:flex;flex-direction:column;gap:3px}
+.card .price{font-family:var(--display);font-weight:800;font-size:1.2rem}
+.card .title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .meta{font-size:.8rem;color:var(--muted)}
+.card .tl{position:absolute;left:8px;top:8px;display:flex;gap:5px}
+.heart{position:absolute;right:8px;top:8px;width:34px;height:34px;border-radius:50%;border:0;background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--muted);box-shadow:0 1px 4px color-mix(in srgb,var(--ink) 15%,transparent)}
+.heart[aria-pressed="true"]{color:var(--bad)}
+.heart[aria-pressed="true"] path{fill:currentColor}
+.empty{border:1.5px dashed var(--line);border-radius:var(--r);padding:40px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.only-narrow{display:none}
+
+/* detail */
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;margin-bottom:14px;background:none;border:0;cursor:pointer;padding:0}
+.back:hover{color:var(--ink)}
+.detail{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:32px;align-items:start}
+.gallery .thumb{border-radius:var(--r)}
+.gallery .thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.gallery .thumbs button{border:2px solid transparent;border-radius:var(--r-sm);padding:0;overflow:hidden;cursor:pointer;background:none}
+.gallery .thumbs button[aria-pressed="true"]{border-color:var(--ink)}
+.v1 svg{transform:scale(1.35) translate(8%,6%)}
+.v2 svg{transform:scaleX(-1) rotate(-6deg)}
+.dinfo{display:flex;flex-direction:column;gap:18px}
+.dprice{font-family:var(--display);font-size:2.2rem;font-weight:800;line-height:1}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0;font-size:.92rem}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;font-weight:500}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.seller{display:flex;gap:12px;align-items:center}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:var(--r-sm);font-size:.9rem}
+.banner.warn{background:var(--warn-bg);color:var(--warn)}
+.banner.bad{background:var(--bad-bg);color:var(--bad)}
+.banner.ok{background:var(--ok-bg);color:var(--ok)}
+.banner.ai{background:var(--ai-bg);color:var(--ai)}
+.banner.info{background:var(--sunk);color:var(--muted)}
+.banner svg{flex:none;margin-top:2px}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+textarea{width:100%;resize:vertical;min-height:80px}
+
+/* sell */
+.stepper{display:flex;gap:6px;align-items:center;margin-bottom:20px;flex-wrap:wrap;font-size:.85rem}
+.stepper span{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.stepper i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);font-weight:600;font-size:.75rem}
+.stepper .on{color:var(--ink);font-weight:600}
+.stepper .on i{background:var(--brand);color:var(--on-brand)}
+.stepper .done i{background:var(--ok-bg);color:var(--ok)}
+.stepper .sep{width:24px;height:1px;background:var(--line)}
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--surface);padding:44px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;cursor:pointer;transition:border-color .15s, background .15s}
+.drop:hover,.drop.over{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 6%,var(--surface))}
+.drop .ic{width:56px;height:56px;border-radius:14px;background:var(--box-2);color:var(--box-ink);display:grid;place-items:center}
+.samples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sample{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface);cursor:pointer;padding:0;text-align:left}
+.sample:hover{border-color:var(--brand)}
+.sample .cap{padding:8px 10px;font-size:.85rem}
+.sellgrid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:28px;align-items:start}
+.sellgrid .thumb{border-radius:var(--r)}
+.progress{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.progress li{display:flex;gap:10px;align-items:center;color:var(--muted)}
+.progress li.now{color:var(--ink);font-weight:500}
+.progress li.did{color:var(--ok)}
+.progress ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center}
+.now .dot{border-color:var(--ai);border-top-color:transparent;animation:spin .8s linear infinite}
+.did .dot{border-color:var(--ok);background:var(--ok);color:var(--surface)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.bar{height:6px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ai);width:0;transition:width .5s}
+form.listing{display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>label,.field>.lab{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem}
+.field .input,.field select,.field textarea{width:100%}
+.field .hint{font-size:.82rem;color:var(--muted)}
+.field .err{font-size:.82rem;color:var(--bad);font-weight:500}
+.field.invalid .input,.field.invalid select,.field.invalid textarea{border-color:var(--bad)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.seg label{text-align:center;padding:8px 4px;cursor:pointer;font-size:.88rem;border-left:1px solid var(--line);background:var(--surface)}
+.seg label:first-child{border-left:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--ink);color:var(--bg);font-weight:600}
+.seg label:has(input:focus-visible){outline:3px solid var(--ai);outline-offset:-3px}
+.money{position:relative}
+.money span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.money input{padding-left:24px;font-variant-numeric:tabular-nums}
+.suggest{border:1px solid color-mix(in srgb,var(--ai) 35%,var(--line));background:color-mix(in srgb,var(--ai-bg) 60%,var(--surface));border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.suggest .big{font-family:var(--display);font-size:1.5rem;font-weight:800}
+.scale{position:relative;height:40px;margin-top:4px}
+.scale .track{position:absolute;left:0;right:0;top:12px;height:8px;border-radius:99px;background:var(--sunk)}
+.scale .band{position:absolute;top:12px;height:8px;border-radius:99px;background:color-mix(in srgb,var(--ai) 45%,transparent)}
+.scale .med{position:absolute;top:7px;width:3px;height:18px;margin-left:-1.5px;background:var(--ai);border-radius:2px}
+.scale .you{position:absolute;top:4px;margin-left:-7px;width:14px;height:14px;border-radius:50%;background:var(--ink);border:2px solid var(--surface)}
+.scale .lbl{position:absolute;top:24px;font-size:.72rem;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+details.why summary{cursor:pointer;font-size:.85rem;font-weight:600;color:var(--ai)}
+details.why p{font-size:.85rem;margin-top:6px;color:var(--muted)}
+.success{max-width:560px;margin:0 auto;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+.success .tick{width:60px;height:60px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center}
+.success .card{width:260px;text-align:left}
+
+/* inbox */
+.inbox{display:grid;grid-template-columns:340px minmax(0,1fr);border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden;min-height:600px}
+.ilist{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;background:none;border:0;padding:12px;cursor:pointer;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.trow{display:flex;gap:11px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;cursor:pointer;width:100%}
+.trow:hover{background:var(--sunk)}
+.trow[aria-current="true"]{background:color-mix(in srgb,var(--brand) 9%,var(--surface))}
+.trow .thumb{width:52px;flex:none;border-radius:var(--r-sm);aspect-ratio:1}
+.trow .thumb svg{width:80%}
+.trow .tx{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.trow .who{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:.9rem}
+.trow .snip{font-size:.84rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px}
+.trow.waiting{box-shadow:inset 3px 0 0 var(--warn)}
+.chat{display:flex;flex-direction:column;min-width:0}
+.chead{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.chead .thumb{width:46px;border-radius:var(--r-sm);aspect-ratio:1}
+.chead .thumb svg{width:80%}
+.chead .tx{flex:1;min-width:0}
+.statusseg{display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;font-size:.8rem}
+.statusseg button{border:0;background:var(--surface);padding:5px 11px;cursor:pointer;border-left:1px solid var(--line)}
+.statusseg button:first-child{border-left:0}
+.statusseg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:600}
+.msgs{flex:1;padding:16px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;background:var(--bg)}
+.msg{max-width:78%;display:flex;flex-direction:column;gap:3px}
+.msg .bub{padding:9px 13px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.msg.me .bub{background:var(--brand);color:var(--on-brand);border-color:transparent}
+.msg .st{font-size:.72rem;color:var(--muted)}
+.sysnote{align-self:center;font-size:.78rem;color:var(--muted);background:var(--sunk);padding:4px 12px;border-radius:99px}
+.compose{border-top:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.draft{border:1px solid color-mix(in srgb,var(--ai) 40%,var(--line));background:var(--ai-bg);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.draft .dh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.82rem;font-weight:600;color:var(--ai)}
+.draft .dtext{font-size:.94rem}
+.cbar{display:flex;gap:8px;align-items:flex-end}
+.cbar textarea{min-height:44px;height:44px}
+.cplace{flex:1;display:grid;place-items:center;color:var(--muted);padding:40px;text-align:center}
+
+/* mine */
+.mlist{display:flex;flex-direction:column;gap:10px}
+.mrow{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px}
+.mrow .thumb{border-radius:var(--r-sm);aspect-ratio:1}
+.mrow .thumb svg{width:80%}
+
+/* modal + toast */
+#modal{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,#000 45%,transparent);display:grid;place-items:center;padding:16px}
+.mbox{background:var(--surface);border-radius:var(--r);max-width:440px;width:100%;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.mbox fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+#toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:calc(100% - 32px)}
+.toast{background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:var(--r-sm);display:flex;gap:14px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:.9rem;animation:up .2s ease-out}
+.toast button{background:none;border:0;color:var(--brand-2);font-weight:700;cursor:pointer;padding:0}
+:root:not([data-theme="dark"]) .toast button{color:#7fe0c2}
+@keyframes up{from{transform:translateY(8px);opacity:0}}
+
+@media (max-width:900px){
+  .browse{grid-template-columns:1fr}
+  .filters{position:static;display:none}
+  .filters.open{display:flex}
+  .only-narrow{display:inline-flex}
+  .detail,.sellgrid{grid-template-columns:1fr}
+  .inbox{grid-template-columns:1fr}
+  .inbox.has-active .ilist{display:none}
+  .inbox:not(.has-active) .chat{display:none}
+  .ilist{border-right:0}
+}
+@media (max-width:560px){
+  h1{font-size:1.4rem}
+  .two{grid-template-columns:1fr}
+  .samples{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .me .who{display:none}
+  .msg{max-width:90%}
+  .mrow{grid-template-columns:56px minmax(0,1fr)}
+  .mrow .acts{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="proto" role="region" aria-label="Prototype controls">
+  <div class="wrap">
+    <b>Part B prototype · Stackers</b>
+    <button class="task" data-act="task" data-to="sell"><span>Task 1</span>List an item from one photo</button>
+    <button class="task" data-act="task" data-to="browse"><span>Task 2</span>Find a desk under $50 and save it</button>
+    <button class="task" data-act="task" data-to="inbox"><span>Task 3</span>Reply to a buyer using the AI draft</button>
+    <span class="sp"></span>
+    <label class="switch"><input type="checkbox" id="aifail"> Simulate AI failure</label>
+    <button class="linkbtn" data-act="reset">Reset prototype</button>
+  </div>
+</div>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#browse" aria-label="MoveOut home">
+      <span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>
+      MoveOut
+    </a>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="search" placeholder="Search desks, mini-fridges, textbooks…" aria-label="Search listings" autocomplete="off">
+    </div>
+    <nav class="main" id="nav"></nav>
+    <div class="me">
+      <span class="av">DS</span>
+      <span class="who"><b>Demo student</b><br><span class="verified">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5 9-10"/></svg>Verified @illinois.edu</span></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<div id="modal" hidden></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+/* ---------- data ---------- */
+const CATS=['Desks','Seating','Appliances','Electronics','Textbooks','Lighting','Decor','Bikes','Other'];
+const CONDS=['New','Like new','Good','Fair'];
+const COND_NOTE={'New':'Never used or still boxed','Like new':'Used briefly, no visible wear','Good':'Light wear, works perfectly','Fair':'Visible wear or a small flaw, still usable'};
+const FACTOR={'New':1,'Like new':.85,'Good':.7,'Fair':.5};
+const AREAS={'Ikenberry Commons':0.4,'ISR':0.3,'PAR / FAR':0.8,'LAR / Busey-Evans':0.7,'Illini Union':0.2,'Main Quad':0.1,'Green St (Campustown)':0.5,'Siebel / Grainger':0.6,'Downtown Champaign':2.4};
+const NOUN={Desks:'desks',Seating:'chairs and sofas',Appliances:'appliances',Electronics:'electronics',Textbooks:'textbooks',Lighting:'lamps',Decor:'decor items',Bikes:'bikes',Other:'items'};
+const ART_FOR={Desks:'desk',Seating:'chair',Appliances:'fridge',Electronics:'monitor',Textbooks:'books',Lighting:'lamp',Decor:'rug',Bikes:'bike',Other:'rug'};
+
+const SEED=[
+ {id:1,title:'IKEA Linnmon desk, white',price:40,cat:'Desks',cond:'Good',area:'Ikenberry Commons',moveout:'2026-12-18',seller:'Priya S.',status:'Available',art:'desk',tone:1,posted:2,desc:'47" x 24" tabletop on adjustable legs. A couple of small marks near the edge, otherwise clean. I can help carry it to your car.'},
+ {id:2,title:'Solid oak writing desk',price:85,cat:'Desks',cond:'Like new',area:'Green St (Campustown)',moveout:'2026-12-20',seller:'Marcus T.',status:'Available',art:'desk',tone:4,posted:1,desc:'Heavy solid oak with two drawers. Bought in August, barely used. Needs two people to move.'},
+ {id:3,title:'Compact corner desk',price:30,cat:'Desks',cond:'Fair',area:'PAR / FAR',moveout:'2026-12-16',seller:'Hannah L.',status:'Available',art:'desk',tone:2,posted:4,desc:'Fits in a dorm corner. One leg cap is missing so it sits slightly uneven; a folded napkin fixes it.'},
+ {id:4,title:'Mini-fridge, 3.2 cu ft',price:60,cat:'Appliances',cond:'Good',area:'ISR',moveout:'2026-12-17',seller:'Daniel O.',status:'Pending',art:'fridge',tone:3,posted:3,desc:'Small freezer compartment, keeps drinks cold. Defrosted and cleaned.'},
+ {id:5,title:'Microwave, 700 W',price:20,cat:'Appliances',cond:'Good',area:'Illini Union',moveout:'2026-12-19',seller:'Sofia M.',status:'Available',art:'microwave',tone:1,posted:2,desc:'Works perfectly, turntable included. Fits on a mini-fridge.'},
+ {id:6,title:'24" Dell monitor with HDMI cable',price:70,cat:'Electronics',cond:'Like new',area:'Siebel / Grainger',moveout:'2026-12-18',seller:'Kevin W.',status:'Available',art:'monitor',tone:3,posted:0,desc:'1080p, no dead pixels. Comes with stand and a 6 ft HDMI cable.'},
+ {id:7,title:'CS 225 textbook bundle (3 books)',price:30,cat:'Textbooks',cond:'Good',area:'Siebel / Grainger',moveout:'2026-12-15',seller:'Aisha B.',status:'Available',art:'books',tone:2,posted:5,desc:'Some highlighting in chapters 1 to 4. Selling as a set.'},
+ {id:8,title:'Futon with mattress',price:90,cat:'Seating',cond:'Good',area:'Green St (Campustown)',moveout:'2026-12-21',seller:'Leo R.',status:'Available',art:'futon',tone:4,posted:1,desc:'Folds flat into a full-size bed. Mattress cover was washed last week.'},
+ {id:9,title:'Single-speed bike, 54 cm',price:120,cat:'Bikes',cond:'Good',area:'Main Quad',moveout:'2026-12-19',seller:'Nina P.',status:'Available',art:'bike',tone:2,posted:2,desc:'New chain in September. U-lock included.'},
+ {id:10,title:'Area rug, 5 x 7 ft',price:15,cat:'Decor',cond:'Fair',area:'LAR / Busey-Evans',moveout:'2026-12-16',seller:'Grace H.',status:'Available',art:'rug',tone:1,posted:6,desc:'Gray and white pattern. One faint stain near the corner.'},
+ {id:11,title:'Rolling desk chair, mesh back',price:35,cat:'Seating',cond:'Good',area:'Ikenberry Commons',moveout:'2026-12-18',seller:'Omar F.',status:'Available',art:'chair',tone:3,posted:3,desc:'Height adjusts, wheels roll smoothly. Armrests included.'},
+ {id:12,title:'Standing desk converter',price:45,cat:'Desks',cond:'New',area:'Downtown Champaign',moveout:'2026-12-22',seller:'Ella J.',status:'Available',art:'desk',tone:1,posted:0,desc:'Still in the box. Sits on top of any desk and lifts with a spring.'},
+ {id:101,title:'Black office chair',price:25,cat:'Seating',cond:'Good',area:'Ikenberry Commons',moveout:'2026-12-18',seller:'You',status:'Available',art:'chair',tone:2,posted:3,desc:'Padded seat, tilts back. Small scuff on one arm.'},
+ {id:102,title:'LED desk lamp',price:10,cat:'Lighting',cond:'Like new',area:'Ikenberry Commons',moveout:'2026-12-18',seller:'You',status:'Available',art:'lamp',tone:4,posted:3,desc:'Three brightness levels, USB charging port in the base.'},
+];
+
+/* Comparable listings (active + sold) used by the pricing rule in the proposal */
+const COMPS=[
+ ...[30,35,38,42,45,48,55,60].map(p=>['Desks','Good',p]),['Desks','Like new',70],['Desks','Like new',85],['Desks','Fair',20],['Desks','Fair',25],['Desks','Fair',30],
+ ['Appliances','Good',55],['Appliances','Good',60],['Appliances','Good',65],['Appliances','Fair',35],['Appliances','New',95],
+ ...[20,25,30,35,45].map(p=>['Seating','Good',p]),['Seating','Like new',50],
+ ...[20,25,30,35].map(p=>['Textbooks','Good',p]),
+ ['Electronics','Like new',60],['Electronics','Like new',70],['Electronics','Like new',80],['Electronics','Good',50],
+ ['Lighting','Good',6],
+ ['Bikes','Good',100],['Bikes','Good',120],['Bikes','Good',140],
+ ['Decor','Fair',10],['Decor','Fair',15],['Decor','Fair',20],
+].map(([cat,cond,price])=>({cat,cond,price}));
+const ROUGH={Lighting:[8,15],Other:[5,25],Decor:[10,25],Textbooks:[15,35],Bikes:[60,140],Electronics:[30,80],Appliances:[30,70],Seating:[20,60],Desks:[25,60]};
+
+/* What the "AI" returns for each sample photo */
+const AI_RESULTS={
+ desk:{title:'Wooden study desk with drawer',cat:'Desks',cond:'Good',desc:'Solid wood desk, about 47" x 24", with one sliding drawer. Light scratches on the top, no wobble. Fits a standard dorm room and two people can carry it.'},
+ fridge:{title:'Mini-fridge, 3.1 cu ft, black',cat:'Appliances',cond:'Like new',desc:'Compact black mini-fridge with a small freezer shelf and door storage. Clean inside, runs quietly. Good fit under a lofted dorm bed.'},
+ lamp:{title:'Adjustable desk lamp, warm light',cat:'Lighting',cond:'Good',desc:'Desk lamp with a bendable neck and weighted base. Bulb included and working. Minor scuffs on the base.'},
+};
+const SAMPLE_LABEL={desk:'Desk',fridge:'Mini-fridge',lamp:'Desk lamp'};
+
+const THREADS=[
+ {id:'t1',listing:101,role:'selling',with:'Jordan K.',waiting:26,unread:true,
+  msgs:[{from:'them',text:'Hi! Is the chair still available? Could you do $15?',time:'Yesterday, 4:12 PM'}],
+  drafts:["Hi Jordan! Yes, the chair is still available. I'm asking $25 since it's in good shape, but I can do $20 if you pick it up by Dec 15. I'm at Ikenberry, so we could meet in the dining hall lobby.",
+          "Hi Jordan, it's still available! $15 is a bit low for me. Would $20 work? I can meet you at Ikenberry Commons any afternoon this week."],
+  dstate:'ready',di:0},
+ {id:'t2',listing:102,role:'selling',with:'Maya R.',waiting:3,unread:true,
+  msgs:[{from:'them',text:'Does the lamp come with a bulb?',time:'Today, 11:40 AM'}],
+  drafts:["Hi Maya! It's an LED lamp, so the light is built in and there's no bulb to replace. It also has a USB charging port in the base.",
+          "Hi Maya, no bulb needed. The LEDs are built into the lamp and still work great. Happy to show you before you buy."],
+  dstate:'ready',di:0},
+ {id:'t3',listing:4,role:'buying',with:'Daniel O.',waiting:0,unread:false,
+  msgs:[{from:'me',text:'Hi, is the mini-fridge still available?',time:'Mon, 9:05 AM',status:'seen'},
+        {from:'them',text:"Someone's picking it up Thursday. I'll message you if that falls through!",time:'Mon, 10:30 AM'}],
+  drafts:[],dstate:'none',di:0},
+];
+
+/* ---------- state ---------- */
+let S;
+function newSell(){return {step:'photo',photo:null,file:null,f:{title:'',desc:'',cat:'',cond:'',price:'',area:'',moveout:'2026-12-18'},ai:{},failed:false,timers:[],errors:{}}}
+function fresh(){return {
+  listings:SEED.map(x=>({...x,saved:false})),
+  threads:THREADS.map(t=>({...t,msgs:t.msgs.map(m=>({...m}))})),
+  f:{q:'',cat:'All',max:150,conds:[],dist:'any',pending:true,saved:false,sort:'new'},
+  sell:newSell(),tab:'selling',active:null,nextId:200,aiFail:S?S.aiFail:false,detailView:0
+}}
+S=fresh();
+
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const L=id=>S.listings.find(l=>l.id==id);
+const dist=l=>AREAS[l.area]??1;
+const fmtDate=v=>v?new Date(v+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+const ago=d=>d===0?'today':d===1?'yesterday':d+' days ago';
+const ICON={
+ heart:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.4-9.2-9A5 5 0 0 1 12 6a5 5 0 0 1 9.2 5C19 15.6 12 20 12 20z"/></svg>',
+ back:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>',
+ spark:'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.3L20.5 10l-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-1.7z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>',
+ shield:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>',
+ alert:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',
+ check:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M5 12l5 5 9-10"/></svg>',
+ upload:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3M12 4v12M7 9l5-5 5 5"/></svg>',
+};
+const ARTS={
+ desk:'<rect x="12" y="38" width="76" height="7" rx="1.5"/><rect x="16" y="45" width="5" height="36"/><rect x="79" y="45" width="5" height="36"/><rect x="52" y="45" width="27" height="15"/><rect x="61" y="51" width="9" height="2.5" class="h"/>',
+ fridge:'<rect x="32" y="14" width="36" height="68" rx="4"/><rect x="32" y="38" width="36" height="2" class="h"/><rect x="61" y="22" width="2.8" height="10" class="h"/><rect x="61" y="45" width="2.8" height="14" class="h"/><rect x="35" y="82" width="5" height="4"/><rect x="60" y="82" width="5" height="4"/>',
+ lamp:'<rect x="34" y="78" width="32" height="6" rx="2"/><rect x="48" y="40" width="4" height="38"/><path d="M32 42 L68 42 L59 16 L41 16 Z"/>',
+ chair:'<rect x="32" y="12" width="36" height="32" rx="6"/><rect x="27" y="48" width="46" height="9" rx="3"/><rect x="48" y="57" width="4" height="17"/><rect x="28" y="74" width="44" height="4" rx="2"/><circle cx="30" cy="83" r="3.6"/><circle cx="70" cy="83" r="3.6"/><circle cx="50" cy="83" r="3.6"/>',
+ books:'<rect x="22" y="30" width="12" height="52" rx="1.5"/><rect x="36" y="20" width="14" height="62" rx="1.5"/><rect x="52" y="36" width="10" height="46" rx="1.5"/><rect x="66" y="27" width="12" height="54" rx="1.5" transform="rotate(9 72 55)"/><rect x="16" y="82" width="68" height="4"/>',
+ microwave:'<rect x="14" y="28" width="72" height="46" rx="4"/><rect x="20" y="34" width="44" height="34" rx="2" class="h"/><circle cx="75" cy="44" r="3.8" class="h"/><circle cx="75" cy="57" r="3.8" class="h"/>',
+ monitor:'<rect x="12" y="20" width="76" height="47" rx="3"/><rect x="16" y="24" width="68" height="39" rx="1" class="h"/><rect x="47" y="67" width="6" height="11"/><rect x="33" y="78" width="34" height="4" rx="2"/>',
+ futon:'<rect x="14" y="36" width="72" height="24" rx="5"/><rect x="8" y="48" width="12" height="22" rx="3"/><rect x="80" y="48" width="12" height="22" rx="3"/><rect x="18" y="58" width="64" height="13" rx="3"/><rect x="20" y="71" width="4" height="9"/><rect x="76" y="71" width="4" height="9"/>',
+ bike:'<g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="27" cy="64" r="15"/><circle cx="73" cy="64" r="15"/><path d="M27 64 L43 40 L65 40 L73 64 M43 40 L52 64 L65 40 M38 32 L49 32 M65 40 L62 29 L71 29"/></g>',
+ rug:'<rect x="12" y="28" width="76" height="46" rx="2"/><rect x="20" y="36" width="60" height="30" rx="1" class="h"/><rect x="29" y="44" width="42" height="14" rx="1"/>',
+};
+const art=k=>`<svg viewBox="0 0 100 100" class="art" aria-hidden="true"><g fill="currentColor">${ARTS[k]||ARTS.rug}</g></svg>`;
+function thumb(l,cls=''){
+  if(l.img) return `<div class="thumb ${cls}"><img src="${l.img}" alt=""></div>`;
+  return `<div class="thumb tone${l.tone||1} ${cls}">${art(l.art)}</div>`;
+}
+const statusPill=s=>`<span class="pill ${s.toLowerCase()}">${s}</span>`;
+
+function toast(msg,undo,ms=4500){
+  const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');
+  t.innerHTML=`<span>${esc(msg)}</span>`+(undo?'<button type="button">Undo</button>':'');
+  $('#toasts').appendChild(t);
+  const kill=()=>t.remove();
+  if(undo) t.querySelector('button').onclick=()=>{undo();kill()};
+  setTimeout(kill,ms);
+}
+function modal(html,onMount){
+  const m=$('#modal');m.innerHTML=`<div class="mbox" role="dialog" aria-modal="true">${html}</div>`;m.hidden=false;
+  const prev=document.activeElement;
+  m.onclick=e=>{if(e.target===m||e.target.closest('[data-close]'))close()};
+  function close(){m.hidden=true;m.innerHTML='';prev&&prev.focus&&prev.focus()}
+  m._close=close;
+  onMount&&onMount(m,close);
+  const f=m.querySelector('input,button:not([data-close]),textarea');f&&f.focus();
+  return close;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').hidden)$('#modal')._close()});
+function confirmBox(title,body,label,danger,ok){
+  modal(`<h2>${esc(title)}</h2><p class="muted">${esc(body)}</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancel</button><button class="btn ${danger?'danger':''}" id="okbtn">${esc(label)}</button></div>`,
+   (m,close)=>{m.querySelector('#okbtn').onclick=()=>{close();ok()}});
+}
+function reportBox(what){
+  modal(`<h2>Report ${esc(what)}</h2><p class="muted small">Reports are private. Content with 3 or more reports is hidden until our team reviews it.</p>
+  <fieldset><legend class="flabel" style="margin-bottom:6px">Reason</legend>
+  ${['Scam or suspicious','Prohibited item','Offensive','Other'].map((r,i)=>`<label class="check"><input type="radio" name="rr" value="${r}" ${i?'':'checked'}> ${r}</label>`).join('')}</fieldset>
+  <textarea id="rdetail" placeholder="Add details (optional)"></textarea>
+  <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Cancel</button><button class="btn danger" id="rsend">Send report</button></div>`,
+  (m,close)=>{m.querySelector('#rsend').onclick=()=>{close();toast('Report sent. Our team reviews reports within 24 hours.')}});
+}
+
+/* ---------- pricing rule (from proposal) ---------- */
+function pct(a,p){const s=[...a].sort((x,y)=>x-y);const i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo)}
+const rnd=v=>v>=20?Math.round(v/5)*5:Math.round(v);
+function suggest(cat,cond){
+  if(!cat||!cond) return null;
+  const same=COMPS.filter(c=>c.cat===cat&&c.cond===cond).map(c=>c.price);
+  if(same.length>=3) return {level:'normal',n:same.length,low:rnd(pct(same,.25)),high:rnd(pct(same,.75)),mid:rnd(pct(same,.5)),
+    basis:`based on ${same.length} similar ${NOUN[cat]} in ${cond} condition`,
+    why:`We looked at ${same.length} ${NOUN[cat]} in ${cond} condition listed or sold on MoveOut. The middle half sold or listed between the two ends of this range, and the marker is the median.`};
+  const any=COMPS.filter(c=>c.cat===cat).map(c=>c.price/FACTOR[c.cond]*FACTOR[cond]);
+  if(any.length>=3) return {level:'sparse',n:any.length,low:rnd(pct(any,.25)),high:rnd(pct(any,.75)),mid:rnd(pct(any,.5)),
+    basis:`based on ${any.length} ${NOUN[cat]} in any condition`,
+    why:`Fewer than 3 ${NOUN[cat]} in ${cond} condition are on MoveOut, so we used all ${any.length} ${NOUN[cat]} and adjusted each price to ${cond} condition (${Math.round(FACTOR[cond]*100)}% of new).`};
+  const r=ROUGH[cat]||ROUGH.Other;const k=FACTOR[cond]/.7;
+  return {level:'low',n:any.length,low:rnd(r[0]*k),high:rnd(r[1]*k),mid:rnd((r[0]+r[1])/2*k),
+    basis:'estimated from your description',
+    why:`Only ${any.length} similar item${any.length===1?' is':'s are'} on MoveOut so far, so this range is a rough estimate from the item description. Check prices elsewhere before you decide.`};
+}
+
+/* ---------- routing ---------- */
+function go(h){ if(location.hash==='#'+h) route(); else location.hash=h; }
+window.addEventListener('hashchange',route);
+function route(){
+  const h=location.hash.slice(1)||'browse';
+  let view=h, param=null;
+  if(h.startsWith('item-')){view='detail';param=+h.slice(5)}
+  else if(h.startsWith('chat-')){view='inbox';param=h.slice(5)}
+  if(!['browse','detail','sell','inbox','mine'].includes(view)) view='browse';
+  S.view=view;
+  if(view==='inbox') S.active=param;
+  renderNav();
+  const app=$('#app');
+  if(view==='browse'){app.innerHTML=vBrowse();renderGrid()}
+  else if(view==='detail'){const l=L(param);if(!l){go('browse');return}S.detailView=0;app.innerHTML=vDetail(l)}
+  else if(view==='sell'){app.innerHTML=vSell();mountSell()}
+  else if(view==='inbox'){app.innerHTML=vInbox();scrollChat()}
+  else if(view==='mine'){app.innerHTML=vMine()}
+  if(!S._keepScroll) window.scrollTo(0,0);
+  S._keepScroll=false;
+}
+function rerender(){S._keepScroll=true;route()}
+
+function renderNav(){
+  const needs=S.threads.filter(t=>t.role==='selling'&&t.unread).length;
+  const items=[['browse','Browse'],['inbox','Messages'],['mine','My listings'],['sell','Sell an item']];
+  const cur=S.view==='detail'?'browse':S.view;
+  $('#nav').innerHTML=items.map(([h,t])=>`<a href="#${h}" class="${h==='sell'?'sell':''}" ${cur===h?'aria-current="page"':''}>${t}${h==='inbox'&&needs?`<span class="badge-n" aria-label="${needs} need a reply">${needs}</span>`:''}</a>`).join('');
+}
+
+/* ---------- browse ---------- */
+function vBrowse(){
+  const f=S.f;
+  return `<div class="browse">
+  <aside class="filters" id="filters" aria-label="Filters">
+    <div class="fgroup"><span class="flabel">Category</span><div class="chipset" id="fcat">
+      ${['All',...CATS.filter(c=>c!=='Other')].map(c=>`<button class="chip" data-act="fcat" data-v="${c}" aria-pressed="${f.cat===c}">${c}</button>`).join('')}</div></div>
+    <div class="fgroup"><label class="flabel" for="fmax">Max price</label>
+      <input type="range" id="fmax" min="10" max="150" step="5" value="${f.max}">
+      <div class="rangeval"><span class="muted">$10</span><b class="num" id="fmaxv">${f.max>=150?'Any price':'Up to $'+f.max}</b></div></div>
+    <div class="fgroup"><span class="flabel">Condition</span>
+      ${CONDS.map(c=>`<label class="check"><input type="checkbox" data-fcond value="${c}" ${f.conds.includes(c)?'checked':''}> ${c}</label>`).join('')}</div>
+    <div class="fgroup"><label class="flabel" for="fdist">Pickup distance from campus</label>
+      <select id="fdist">${[['any','Any distance'],['0.5','Within 0.5 mi'],['1','Within 1 mi'],['2','Within 2 mi']].map(([v,t])=>`<option value="${v}" ${f.dist===v?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="fgroup"><span class="flabel">Show</span>
+      <label class="check"><input type="checkbox" id="fpend" ${f.pending?'checked':''}> Include pending items</label>
+      <label class="check"><input type="checkbox" id="fsaved" ${f.saved?'checked':''}> Saved items only</label></div>
+    <button class="btn ghost sm" data-act="clearf">Clear all filters</button>
+  </aside>
+  <section style="min-width:0">
+    <div class="res-head">
+      <div><h1>Near campus</h1><p class="muted" id="rescount"></p></div>
+      <div class="res-tools">
+        <button class="btn ghost sm only-narrow" data-act="togglef" aria-expanded="false" aria-controls="filters">Filters</button>
+        <label class="small muted" for="sort">Sort</label>
+        <select id="sort">${[['new','Newest'],['low','Price: low to high'],['high','Price: high to low'],['near','Closest to campus']].map(([v,t])=>`<option value="${v}" ${f.sort===v?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="active-chips" id="achips"></div>
+    <div class="grid" id="grid"></div>
+  </section></div>`;
+}
+function filtered(){
+  const f=S.f, words=f.q.toLowerCase().split(/\s+/).filter(Boolean);
+  let r=S.listings.filter(l=>l.status!=='Sold'&&!l.deleted);
+  if(words.length) r=r.filter(l=>{const t=(l.title+' '+l.desc+' '+l.cat).toLowerCase();return words.every(w=>t.includes(w.replace(/s$/,'')))});
+  if(f.cat!=='All') r=r.filter(l=>l.cat===f.cat);
+  if(f.max<150) r=r.filter(l=>l.price<=f.max);
+  if(f.conds.length) r=r.filter(l=>f.conds.includes(l.cond));
+  if(f.dist!=='any') r=r.filter(l=>dist(l)<=+f.dist);
+  if(!f.pending) r=r.filter(l=>l.status!=='Pending');
+  if(f.saved) r=r.filter(l=>l.saved);
+  const s={new:(a,b)=>a.posted-b.posted,low:(a,b)=>a.price-b.price,high:(a,b)=>b.price-a.price,near:(a,b)=>dist(a)-dist(b)}[f.sort];
+  return r.sort(s);
+}
+function card(l){
+  return `<article class="card" data-act="open" data-id="${l.id}" tabindex="0" aria-label="${esc(l.title)}, $${l.price}">
+    <div style="position:relative">${thumb(l)}
+      <div class="tl">${l.status!=='Available'?statusPill(l.status):''}${l.seller==='You'?'<span class="pill mine">Your listing</span>':''}</div>
+      ${l.seller==='You'?'':`<button class="heart" data-act="save" data-id="${l.id}" aria-pressed="${l.saved}" aria-label="${l.saved?'Remove from saved':'Save'}">${ICON.heart}</button>`}
+    </div>
+    <div class="body"><span class="price">$${l.price}</span><span class="title">${esc(l.title)}</span>
+      <span class="meta">${l.cond} · ${dist(l)} mi · ${esc(l.area)}</span>
+      <span class="meta">Seller moves out ${fmtDate(l.moveout)}</span></div>
+  </article>`;
+}
+function renderGrid(){
+  const r=filtered(), f=S.f;
+  $('#rescount').textContent=`${r.length} item${r.length===1?'':'s'} for pickup near UIUC`;
+  const chips=[];
+  if(f.q) chips.push(['q',`“${f.q}”`]);
+  if(f.cat!=='All') chips.push(['cat',f.cat]);
+  if(f.max<150) chips.push(['max','Up to $'+f.max]);
+  f.conds.forEach(c=>chips.push(['cond:'+c,c]));
+  if(f.dist!=='any') chips.push(['dist','Within '+f.dist+' mi']);
+  if(!f.pending) chips.push(['pending','Hiding pending']);
+  if(f.saved) chips.push(['saved','Saved only']);
+  $('#achips').innerHTML=chips.map(([k,t])=>`<button data-act="rmchip" data-k="${k}" aria-label="Remove filter ${esc(t)}">${esc(t)}</button>`).join('');
+  const fb=$('[data-act=togglef]'); if(fb) fb.textContent=chips.length?`Filters (${chips.length})`:'Filters';
+  $('#grid').innerHTML=r.length?r.map(card).join(''):`<div class="empty" style="grid-column:1/-1"><h3>No items match these filters</h3><p class="muted">Try a higher max price, a wider pickup distance, or fewer conditions.</p><button class="btn ghost sm" data-act="clearf">Clear all filters</button></div>`;
+}
+function clearFilters(){S.f={q:'',cat:'All',max:150,conds:[],dist:'any',pending:true,saved:false,sort:S.f.sort};$('#q').value='';if(S.view==='browse')rerender()}
+
+/* ---------- detail ---------- */
+function vDetail(l){
+  const mine=l.seller==='You';
+  const th=S.threads.find(t=>t.listing===l.id&&t.role==='buying');
+  let action;
+  if(mine) action=`<div class="panel row"><span class="pill mine">Your listing</span><span class="muted small" style="flex:1">Buyers message you from this page.</span><a class="btn ghost sm" href="#mine">Manage</a></div>`;
+  else if(th) action=`<div class="panel"><div class="row" style="justify-content:space-between"><span>You already messaged ${esc(l.seller)}.</span><a class="btn" href="#chat-${th.id}">Open chat</a></div></div>`;
+  else action=`<div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <h3>Message ${esc(l.seller)}</h3>
+      <div class="quick">${['Is this still available?','Can I pick it up this week?','Would you take $'+Math.max(5,Math.round(l.price*.8/5)*5)+'?'].map(q=>`<button class="chip" data-act="quick" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+      <label class="small muted" for="dmsg">Your message</label>
+      <textarea id="dmsg" placeholder="Write a message…"></textarea>
+      <div class="row" style="justify-content:space-between"><span class="small muted" style="display:flex;gap:6px;align-items:center">${ICON.shield} Meet in a public campus spot. Never share verification codes.</span>
+      <button class="btn" data-act="sendfirst" data-id="${l.id}">Send message</button></div>
+    </div>`;
+  return `<a class="back" href="#browse">${ICON.back} Back to results</a>
+  <div class="detail">
+    <div class="gallery">
+      <div id="mainimg">${thumb(l)}</div>
+      ${l.img?'':`<div class="thumbs">${[0,1,2].map(i=>`<button data-act="view" data-i="${i}" aria-pressed="${i===0}" aria-label="Photo ${i+1} of 3">${thumb(l,'v'+i)}</button>`).join('')}</div>`}
+    </div>
+    <div class="dinfo">
+      ${l.status==='Pending'?`<div class="banner warn">${ICON.alert}<span><b>Pending pickup.</b> Someone is ahead of you for this item. You can still message the seller in case it falls through.</span></div>`:''}
+      <div class="row"><span class="pill ${l.status.toLowerCase()}">${l.status}</span><span class="muted small">${esc(l.cat)} · listed ${ago(l.posted)}</span></div>
+      <h1>${esc(l.title)}</h1>
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <span class="dprice price">$${l.price}</span>
+        ${mine?'':`<button class="btn ghost sm" data-act="save" data-id="${l.id}" aria-pressed="${l.saved}">${l.saved?'Saved':'Save'}</button>`}
+      </div>
+      <p>${esc(l.desc)}</p>
+      <dl class="facts">
+        <dt>Condition</dt><dd>${l.cond} <span class="muted" style="font-weight:400">· ${COND_NOTE[l.cond]}</span></dd>
+        <dt>Pickup area</dt><dd>${esc(l.area)} · ${dist(l)} mi from the Main Quad</dd>
+        <dt>Seller moves out</dt><dd>${fmtDate(l.moveout)}</dd>
+      </dl>
+      <div class="seller"><span class="av">${esc((l.seller==='You'?'DS':l.seller.split(' ').map(x=>x[0]).join('')))}</span>
+        <div style="flex:1"><b>${esc(l.seller==='You'?'You':l.seller)}</b><br><span class="verified">${ICON.check} Verified @illinois.edu</span>${mine?'':' <span class="muted small">· Usually replies within 3 hours</span>'}</div></div>
+      ${action}
+      ${mine?'':`<button class="btn text sm" style="align-self:flex-start" data-act="report" data-what="this listing">Report this listing</button>`}
+    </div>
+  </div>`;
+}
+
+/* ---------- sell ---------- */
+function stepper(){
+  const st=S.sell.step, order=['photo','review','done'], idx=st==='analyzing'?0.5:order.indexOf(st);
+  const steps=[['Add a photo',0],['Review details & price',1],['Published',2]];
+  return `<div class="stepper" aria-label="Progress">${steps.map(([t,i],k)=>`${k?'<span class="sep"></span>':''}<span class="${idx>i?'done':idx===i||(idx===0.5&&i===0)?'on':''}"><i>${idx>i?ICON.check:i+1}</i>${t}</span>`).join('')}</div>`;
+}
+function sellPhoto(){
+  const s=S.sell;
+  if(s.file) return `<div class="thumb tone2"><img src="${s.file}" alt="Your uploaded photo"></div>`;
+  return `<div class="thumb tone${s.photo==='fridge'?3:s.photo==='lamp'?4:1}">${art(s.photo)}</div>`;
+}
+function vSell(){
+  const s=S.sell;
+  if(s.step==='photo') return `${stepper()}
+   <div style="max-width:760px;display:flex;flex-direction:column;gap:20px">
+    <div><h1>Sell an item</h1><p class="muted" style="margin-top:6px">Add one photo. MoveOut writes the title, description, category and condition for you to check before anything is posted.</p></div>
+    <label class="drop" id="drop" for="file">
+      <span class="ic">${ICON.upload}</span>
+      <b>Drop a photo here or choose a file</b>
+      <span class="muted small">JPG, PNG or WebP. AI identifies the item from your photo; one clear photo in good light works best.</span>
+      <input type="file" id="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+    </label>
+    <div><p class="flabel" style="margin-bottom:8px">Or try a sample photo</p>
+     <div class="samples">${['desk','fridge','lamp'].map((k,i)=>`<button class="sample" data-act="sample" data-k="${k}"><div class="thumb tone${[1,3,4][i]}">${art(k)}</div><div class="cap">${SAMPLE_LABEL[k]}</div></button>`).join('')}</div>
+     <p class="small muted" style="margin-top:8px">The three samples show the three pricing cases: plenty of comparables (desk), few comparables (mini-fridge), and almost none (lamp).</p>
+    </div>
+   </div>`;
+  if(s.step==='analyzing') return `${stepper()}
+   <div class="sellgrid"><div>${sellPhoto()}</div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:14px" aria-live="polite">
+      <div class="row"><span class="pill ai">${ICON.spark} AI is working</span><span class="muted small">${s.blob?'Usually takes 5 to 20 seconds':'Usually takes about 5 seconds'}</span></div>
+      <h2>Reading your photo…</h2>
+      <div class="bar"><i id="pbar"></i></div>
+      <div class="progress"><ul id="psteps">
+        ${['Identifying the item','Grading condition','Writing title and description','Finding similar items on campus'].map((t,i)=>`<li data-i="${i}"><span class="dot"></span>${t}</li>`).join('')}
+      </ul></div>
+      <div class="row"><button class="btn ghost sm" data-act="manual">Skip AI and fill in by hand</button></div>
+    </div></div>`;
+  if(s.step==='review') return `${stepper()}${vReview()}`;
+  const l=L(s.publishedId);
+  return `${stepper()}<div class="success">
+    <span class="tick"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12l5 5 9-10"/></svg></span>
+    <h1>Your listing is live</h1>
+    <p class="muted">Buyers near ${esc(l.area)} can see it now. We'll draft replies to their messages for you to approve.</p>
+    ${card(l)}
+    <div class="row" style="justify-content:center"><a class="btn" href="#item-${l.id}">View listing</a><button class="btn ghost" data-act="another">List another item</button><a class="btn text" href="#mine">My listings</a></div>
+  </div>`;
+}
+function aiChip(k){const s=S.sell;if(s.failed||!(k in s.ai))return '';return s.ai[k]?`<span class="pill ai" id="chip-${k}">${ICON.spark} AI filled</span>`:`<span class="pill edited" id="chip-${k}">Edited by you</span>`}
+function vReview(){
+  const s=S.sell,f=s.f,e=s.errors;
+  const err=k=>e[k]?`<span class="err" id="err-${k}">${e[k]}</span>`:'';
+  return `<div class="sellgrid">
+   <div style="display:flex;flex-direction:column;gap:12px">${sellPhoto()}
+     <button class="btn text sm" data-act="another" style="align-self:flex-start">Use a different photo</button></div>
+   <form class="listing" id="lform" novalidate>
+     <div><h1>Check your listing</h1></div>
+     ${s.failed?`<div class="banner bad">${ICON.alert}<span style="flex:1">${s.failMsg?esc(s.failMsg):"<b>We couldn't read this photo.</b> Fill in the details below."} Nothing is posted until you press Publish.</span>${s.blob&&s.retry!==false&&!S.aiFail?'<button type="button" class="btn ghost sm" data-act="retryai">Try AI again</button>':''}</div>`
+       :s.manual?`<div class="banner info">${ICON.alert}<span>You're filling this in by hand. Nothing is posted until you press Publish.</span></div>`
+       :`<div class="banner ai">${ICON.spark}<span>${s.lowConf?"<b>AI wasn't sure about this photo.</b> Check every field carefully. ":"AI filled the fields marked below from your photo. Check them and change anything that's wrong. "}Nothing is posted until you press Publish.</span></div>`}
+     <div class="field ${e.title?'invalid':''}"><label for="f-title">Title ${aiChip('title')}</label>
+       <input class="input" id="f-title" data-f="title" value="${esc(f.title)}" maxlength="70" placeholder="e.g. Wooden study desk with drawer">${err('title')}</div>
+     <div class="field"><label for="f-desc">Description ${aiChip('desc')}</label>
+       <textarea id="f-desc" data-f="desc" rows="4" placeholder="Size, flaws, what's included">${esc(f.desc)}</textarea></div>
+     <div class="two">
+       <div class="field ${e.cat?'invalid':''}"><label for="f-cat">Category ${aiChip('cat')}</label>
+         <select id="f-cat" data-f="cat"><option value="">Choose a category</option>${CATS.map(c=>`<option ${f.cat===c?'selected':''}>${c}</option>`).join('')}</select>${err('cat')}</div>
+       <div class="field ${e.area?'invalid':''}"><label for="f-area">Pickup area</label>
+         <select id="f-area" data-f="area"><option value="">Where buyers pick up</option>${Object.keys(AREAS).map(a=>`<option ${f.area===a?'selected':''}>${a}</option>`).join('')}</select>${err('area')}</div>
+     </div>
+     <div class="field ${e.cond?'invalid':''}"><span class="lab" id="lab-cond">Condition ${aiChip('cond')}</span>
+       <div class="seg" role="radiogroup" aria-labelledby="lab-cond">${CONDS.map(c=>`<label><input type="radio" name="cond" data-f="cond" value="${c}" ${f.cond===c?'checked':''}>${c}</label>`).join('')}</div>
+       <span class="hint" id="condnote">${f.cond?COND_NOTE[f.cond]:'Pick the closest match.'}</span>${err('cond')}</div>
+     <div class="field ${e.price?'invalid':''}"><label for="f-price">Your price</label>
+       <div id="suggest"></div>
+       <div class="money" style="max-width:180px"><span>$</span><input class="input" id="f-price" data-f="price" inputmode="numeric" value="${esc(f.price)}" placeholder="0"></div>
+       <span class="hint" id="pricewarn">You set the final price. The suggestion is only a guide.</span>${err('price')}</div>
+     <div class="field ${e.moveout?'invalid':''}" style="max-width:260px"><label for="f-moveout">Your move-out date</label>
+       <input class="input" type="date" id="f-moveout" data-f="moveout" value="${esc(f.moveout)}">
+       <span class="hint">The listing expires after this date.</span>${err('moveout')}</div>
+     <div class="row" style="border-top:1px solid var(--line);padding-top:16px">
+       <button type="submit" class="btn">Publish listing</button>
+       <button type="button" class="btn text" data-act="another">Discard</button>
+     </div>
+   </form></div>`;
+}
+function renderSuggest(){
+  const box=$('#suggest');if(!box)return;
+  const s=S.sell,sg=suggest(s.f.cat,s.f.cond);
+  if(!sg){box.innerHTML=`<div class="banner info">${ICON.spark}<span>Choose a category and condition to see a suggested price.</span></div>`;renderPriceWarn();return}
+  if(S.aiFail&&sg.level==='low'){box.innerHTML='';}
+  const max=Math.max(sg.high*1.6,(+s.f.price||0)*1.1,10);const P=v=>Math.min(100,v/max*100);
+  box.innerHTML=`<div class="suggest">
+    <div class="row" style="justify-content:space-between"><span class="flabel" style="color:var(--ai)">Suggested price</span>
+      ${sg.level==='low'?'<span class="pill wait">Low confidence</span>':sg.level==='sparse'?'<span class="pill edited">Limited data</span>':''}</div>
+    <div class="row" style="justify-content:space-between;align-items:baseline"><span class="big price">$${sg.low} – $${sg.high}</span>
+      <button type="button" class="btn ai sm" data-act="usemid" data-v="${sg.mid}">Use $${sg.mid}</button></div>
+    <span class="small muted">${esc(sg.basis)}</span>
+    <div class="scale" aria-hidden="true"><div class="track"></div>
+      <div class="band" style="left:${P(sg.low)}%;width:${P(sg.high)-P(sg.low)}%"></div>
+      <div class="med" style="left:${P(sg.mid)}%"></div>
+      ${+s.f.price?`<div class="you" style="left:${P(+s.f.price)}%" title="Your price"></div>`:''}
+      <span class="lbl" style="left:${P(sg.low)}%">$${sg.low}</span><span class="lbl" style="left:${P(sg.high)}%">$${sg.high}</span>
+    </div>
+    <details class="why"><summary>How we got this</summary><p>${esc(sg.why)}</p></details>
+  </div>`;
+  renderPriceWarn();
+}
+function renderPriceWarn(){
+  const w=$('#pricewarn');if(!w)return;const s=S.sell,p=+s.f.price,sg=suggest(s.f.cat,s.f.cond);
+  w.style.color='';
+  if(p&&sg&&p<sg.low*.6){w.textContent=`$${p} is well below similar items ($${sg.low}–$${sg.high}). You can still publish at this price.`;w.style.color='var(--warn)'}
+  else if(p&&sg&&p>sg.high*1.5){w.textContent=`$${p} is well above similar items ($${sg.low}–$${sg.high}), so it may sell slowly. You can still publish at this price.`;w.style.color='var(--warn)'}
+  else w.textContent='You set the final price. The suggestion is only a guide.';
+}
+function mountSell(){
+  const s=S.sell;
+  if(s.step==='photo'){
+    const d=$('#drop'),fi=$('#file');
+    fi.onchange=()=>fi.files[0]&&readFile(fi.files[0]);
+    ['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over')}));
+    ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over')}));
+    d.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];f&&readFile(f)});
+  }
+  if(s.step==='analyzing') runAnalysis();
+  if(s.step==='review'){
+    renderSuggest();
+    const form=$('#lform');
+    form.addEventListener('input',e=>{
+      const k=e.target.dataset.f;if(!k)return;
+      if(k==='price') e.target.value=e.target.value.replace(/[^0-9]/g,'').slice(0,4);
+      s.f[k]=e.target.value;
+      if(s.ai[k]){s.ai[k]=false;const c=$('#chip-'+k);if(c){c.className='pill edited';c.textContent='Edited by you'}}
+      if(s.errors[k]){delete s.errors[k];const fe=e.target.closest('.field');fe.classList.remove('invalid');const er=$('#err-'+k);er&&er.remove()}
+      if(k==='cond') $('#condnote').textContent=COND_NOTE[s.f.cond];
+      if(k==='cat'||k==='cond'||k==='price') renderSuggest();
+    });
+    form.addEventListener('submit',e=>{e.preventDefault();publish()});
+  }
+}
+function readFile(file){
+  if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type)){toast('That file type is not supported. Choose a JPG, PNG or WebP photo.');return}
+  const r=new FileReader();r.onload=()=>{S.sell.file=r.result;S.sell.blob=file;S.sell.photo=null;startAnalysis()};r.readAsDataURL(file);
+}
+function startAnalysis(){S.sell.step='analyzing';S.sell.failed=false;S.sell.failMsg='';rerender()}
+
+/* Real photo recognition: asks Claude (vision) about the uploaded photo */
+const samplePromise=(window.claude&&window.claude.use)?window.claude.use('sample').catch(()=>null):Promise.resolve(null);
+const VISION_PROMPT=`You are the listing assistant for MoveOut, a marketplace where university students sell their belongings when they move out of dorms and apartments.
+Look at the attached photo and identify the main item being sold.
+
+Reply with only one JSON object, no other text:
+{"sellable": true or false,
+ "reason": "only if sellable is false: why, in under 12 words",
+ "title": "specific listing title, at most 60 characters; include brand, size or color only if visible",
+ "category": one of ${JSON.stringify(CATS)},
+ "condition": one of ["New","Like new","Good","Fair"],
+ "description": "2 or 3 plain sentences for buyers: what it is, visible size or features, and any visible wear. Do not invent details you cannot see.",
+ "confidence": "high", "medium" or "low"}
+
+Condition guide: New = unused or still boxed; Like new = no visible wear; Good = light wear; Fair = clear wear or a visible flaw.
+If the photo does not show an item someone would sell (for example a person, a landscape, a screenshot or a blank image), set sellable to false.`;
+const FAIL_COPY={
+  unavailable:"AI photo reading isn't available in this view. Fill in the details below.",
+  not_granted:"AI photo reading wasn't allowed, so fill in the details below.",
+  image_rejected:"We couldn't open that photo. Try a JPG or PNG under 20 MB, or fill in the details below.",
+  rate_limited:"Too many AI requests right now. Try again in a minute, or fill in the details below.",
+  timeout:"Reading the photo took too long. Try again, or fill in the details below.",
+};
+async function readPhotoWithAI(s,setStep,lis){
+  [1,2].forEach(i=>s.timers.push(setTimeout(()=>setStep(i),i*1300)));
+  const fail=(code,msg)=>{if(S.sell!==s||s.step!=='analyzing')return;s.timers.forEach(clearTimeout);s.failed=true;s.failMsg=msg||FAIL_COPY[code]||"We couldn't read this photo. Try again, or fill in the details below.";s.retry=code!=='unavailable'&&code!=='not_granted';s.ai={};s.step='review';rerender()};
+  const sample=await samplePromise;
+  const lim=sample?await sample.limits().catch(()=>null):null;
+  if(!sample||!lim||!lim.images) return fail('unavailable');
+  s.ctl=new AbortController();
+  try{
+    const r=await sample.json(VISION_PROMPT,{images:[s.blob],signal:s.ctl.signal,modelTier:'default',effort:'low'});
+    if(S.sell!==s||s.step!=='analyzing') return;
+    if(!r||typeof r!=='object') return fail('bad');
+    if(r.sellable===false) return fail('notitem',`We couldn't find an item to sell in this photo${r.reason?' ('+String(r.reason).replace(/\.$/,'')+')':''}. Try a clearer photo, or fill in the details below.`);
+    const cat=CATS.includes(r.category)?r.category:'Other';
+    const cond=CONDS.find(c=>c.toLowerCase()===String(r.condition||'').toLowerCase())||'';
+    s.timers.forEach(clearTimeout);setStep(3);
+    s.timers.push(setTimeout(()=>{
+      if(S.sell!==s||s.step!=='analyzing') return;
+      Object.assign(s.f,{title:String(r.title||'').slice(0,70),desc:String(r.description||''),cat,cond});
+      s.ai={title:true,desc:true,cat:true};if(cond)s.ai.cond=true;
+      s.lowConf=r.confidence==='low';s.failed=false;s.step='review';rerender();
+      toast('Details filled in. Check them before publishing.');
+    },700));
+  }catch(e){
+    if(e&&e.code==='cancelled') return;
+    fail(e&&e.code);
+  }
+}
+
+function runAnalysis(){
+  const s=S.sell;s.timers.forEach(clearTimeout);s.timers=[];
+  const lis=[...document.querySelectorAll('#psteps li')],bar=$('#pbar');
+  const setStep=i=>{lis.forEach((x,j)=>{x.className=j<i?'did':j===i?'now':'';x.querySelector('.dot').innerHTML=j<i?ICON.check:''});bar.style.width=Math.min(100,(i+1)/lis.length*100-8)+'%'};
+  if(s.blob&&!S.aiFail){setStep(0);readPhotoWithAI(s,setStep,lis);return}
+  const failAt=S.aiFail?2:99;
+  lis.forEach((li,i)=>{
+    s.timers.push(setTimeout(()=>{
+      if(i>=failAt) return;
+      setStep(i);
+    },i*750));
+  });
+  if(S.aiFail){
+    s.timers.push(setTimeout(()=>{s.failed=true;s.ai={};s.step='review';rerender()},4200));
+  } else {
+    s.timers.push(setTimeout(()=>{
+      bar.style.width='100%';
+      const r=AI_RESULTS[s.photo];Object.assign(s.f,{title:r.title,desc:r.desc,cat:r.cat,cond:r.cond});
+      s.ai={title:true,desc:true,cat:true,cond:true};s.failed=false;s.step='review';rerender();
+      toast('Details filled in. Check them before publishing.');
+    },lis.length*750+300));
+  }
+}
+function publish(){
+  const s=S.sell,f=s.f,e={};
+  if(!f.title.trim()) e.title='Add a title so buyers know what this is.';
+  if(!f.cat) e.cat='Choose a category.';
+  if(!f.cond) e.cond='Choose a condition.';
+  if(!f.price||+f.price<=0) e.price='Enter a price of at least $1. Use $1 for free items.';
+  if(!f.area) e.area='Choose where buyers pick up.';
+  const today=new Date().toISOString().slice(0,10);
+  if(!f.moveout) e.moveout='Add your move-out date.'; else if(f.moveout<today) e.moveout='This date has already passed.';
+  s.errors=e;
+  if(Object.keys(e).length){rerender();const first=document.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea');first&&first.focus();toast(`Fix ${Object.keys(e).length} field${Object.keys(e).length>1?'s':''} before publishing.`);return}
+  const id=S.nextId++;
+  S.listings.unshift({id,title:f.title.trim(),price:+f.price,cat:f.cat,cond:f.cond,area:f.area,moveout:f.moveout,seller:'You',status:'Available',art:ART_FOR[f.cat]||s.photo,tone:2,posted:0,desc:f.desc.trim()||'No description.',img:s.file,saved:false});
+  s.step='done';s.publishedId=id;rerender();
+}
+
+/* ---------- inbox ---------- */
+function vInbox(){
+  const list=S.threads.filter(t=>t.role===S.tab);
+  const cnt=r=>S.threads.filter(t=>t.role===r&&t.unread).length;
+  const at=S.threads.find(t=>t.id===S.active);
+  return `<h1 style="margin-bottom:16px">Messages</h1>
+  <div class="inbox ${at?'has-active':''}">
+   <div class="ilist">
+    <div class="tabs" role="tablist">${[['selling','Selling'],['buying','Buying']].map(([k,t])=>`<button role="tab" aria-selected="${S.tab===k}" data-act="tab" data-k="${k}">${t}${cnt(k)?` <span class="badge-n">${cnt(k)}</span>`:''}</button>`).join('')}</div>
+    ${list.length?list.map(t=>{const l=L(t.listing),last=t.msgs[t.msgs.length-1];
+      return `<button class="trow ${t.waiting>24&&t.unread?'waiting':''}" data-act="thread" data-id="${t.id}" ${S.active===t.id?'aria-current="true"':''}>
+       ${thumb(l)}<span class="tx"><span class="who"><span>${esc(t.with)}</span><span class="muted small" style="font-weight:400">${esc(last.time.split(',')[0])}</span></span>
+       <span class="small">${esc(l.title)}</span>
+       <span class="snip">${last.from==='me'?'You: ':''}${esc(last.text)}</span>
+       <span class="tags">${t.waiting>24&&t.unread?`<span class="pill wait">Waiting ${t.waiting} h</span>`:''}${t.role==='selling'&&t.dstate==='ready'?`<span class="pill ai">${ICON.spark} Draft ready</span>`:''}${l.status!=='Available'?statusPill(l.status):''}${l.deleted?'<span class="pill sold">Removed</span>':''}</span></span></button>`}).join('')
+      :`<div class="cplace">No conversations yet.</div>`}
+   </div>
+   <div class="chat">${at?vThread(at):`<div class="cplace"><div><h3>Pick a conversation</h3><p class="small" style="margin-top:4px">Chats waiting more than 24 hours are marked in orange.</p></div></div>`}</div>
+  </div>`;
+}
+function vThread(t){
+  const l=L(t.listing),sell=t.role==='selling';
+  const msgs=t.msgs.map((m,i)=>{const last=i===t.msgs.length-1;
+    return `<div class="msg ${m.from==='me'?'me':''}"><div class="bub">${esc(m.text)}</div><span class="st">${esc(m.time)}${m.from==='me'&&last?` · ${m.status==='sending'?'Sending…':m.status==='seen'?'Seen':'Sent'}`:''}${m.ai?' · Drafted with AI':''}</span></div>`}).join('');
+  let compose;
+  if(l.deleted||l.status==='Sold') compose=`<div class="compose"><div class="banner bad">${ICON.alert}<span>${l.deleted?'This item was removed by the seller.':'This item has been sold.'} The chat stays here for your records.</span></div></div>`;
+  else {
+    let draft='';
+    if(sell){
+      if(t.dstate==='ready') draft=`<div class="draft" aria-live="polite"><div class="dh"><span>${ICON.spark} AI draft reply · not sent</span><span class="muted" style="font-weight:400">Only you can see this</span></div>
+        <div class="dtext">${esc(t.drafts[t.di])}</div>
+        <div class="row"><button class="btn sm" data-act="dsend">Send this reply</button><button class="btn ghost sm" data-act="dedit">Edit first</button><button class="btn text sm" data-act="dregen">Try another draft</button><button class="btn text sm" data-act="ddiscard">Discard</button></div></div>`;
+      else if(t.dstate==='loading') draft=`<div class="draft" aria-live="polite"><div class="dh"><span>${ICON.spark} Drafting a reply…</span></div><div class="bar"><i style="width:60%"></i></div></div>`;
+      else if(t.dstate==='failed') draft=`<div class="banner bad">${ICON.alert}<span>Couldn't draft a reply right now. Write your own below, or try again in a minute.</span></div>`;
+    }
+    compose=`<div class="compose">${draft}
+      <div class="cbar"><textarea id="cmsg" aria-label="Message" placeholder="${sell&&t.dstate==='editing'?'Edit the AI draft, then send':'Write a message…'}">${t.dstate==='editing'?esc(t.drafts[t.di]):''}</textarea>
+      <button class="btn" data-act="send">Send</button></div>
+      ${sell&&t.dstate!=='ready'&&t.dstate!=='loading'?`<button class="btn text sm" style="align-self:flex-start" data-act="dregen">${ICON.spark} Draft a reply with AI</button>`:''}
+    </div>`;
+  }
+  return `<div class="chead">
+    <button class="back only-narrow" style="margin:0" data-act="closechat" aria-label="Back to conversations">${ICON.back}</button>
+    ${thumb(l)}<div class="tx"><b>${esc(t.with)}</b> <span class="verified">${ICON.check} Verified</span><br>
+      <a href="#item-${l.id}" class="small">${esc(l.title)} · $${l.price}</a></div>
+    ${sell&&!l.deleted?`<div class="statusseg" role="group" aria-label="Item status">${['Available','Pending','Sold'].map(s=>`<button data-act="status" data-s="${s}" aria-pressed="${l.status===s}">${s}</button>`).join('')}</div>`:statusPill(l.deleted?'Sold':l.status)}
+    <button class="btn text sm" data-act="report" data-what="this user">Report or block</button>
+  </div>
+  <div class="msgs" id="msgs">
+    <div class="sysnote" style="display:flex;gap:6px;align-items:center">${ICON.shield} Meet in a public campus spot. Never pay outside the agreed price or share codes.</div>
+    ${!sell&&l.status==='Pending'?`<div class="banner warn" style="align-self:stretch">${ICON.alert}<span>This item is pending. Another buyer is ahead of you.</span></div>`:''}
+    ${msgs}
+  </div>${compose}`;
+}
+function scrollChat(){const m=$('#msgs');if(m)m.scrollTop=m.scrollHeight}
+function sendMsg(t,text,ai){
+  text=text.trim();if(!text){toast('Write a message first.');$('#cmsg')&&$('#cmsg').focus();return}
+  const m={from:'me',text,time:'Just now',status:'sending',ai};t.msgs.push(m);t.unread=false;t.waiting=0;
+  const prev={dstate:t.dstate};t.dstate=t.role==='selling'?'none':t.dstate;
+  rerender();
+  setTimeout(()=>{m.status='sent';if(S.view==='inbox')rerender()},800);
+  toast(`Sent to ${t.with}`,()=>{t.msgs=t.msgs.filter(x=>x!==m);t.dstate=prev.dstate==='editing'?'ready':prev.dstate;t.unread=t.role==='selling';rerender();toast('Message unsent')},5000);
+}
+
+/* ---------- my listings ---------- */
+function vMine(){
+  const mine=S.listings.filter(l=>l.seller==='You'&&!l.deleted);
+  return `<div class="res-head"><div><h1>My listings</h1><p class="muted">${mine.length} item${mine.length===1?'':'s'} · listings expire after your move-out date</p></div><a class="btn" href="#sell">Sell an item</a></div>
+  <div class="mlist">${mine.map(l=>{const ts=S.threads.filter(t=>t.listing===l.id),w=ts.filter(t=>t.unread);
+    return `<div class="mrow">${thumb(l)}<div style="min-width:0"><div class="row"><b>${esc(l.title)}</b>${statusPill(l.status)}</div>
+      <span class="small muted">$${l.price} · ${ts.length} chat${ts.length===1?'':'s'}${w.length?` · <b style="color:var(--warn)">${w.length} waiting for your reply</b>`:''} · expires ${fmtDate(l.moveout)}</span></div>
+      <div class="row acts">${w.length?`<a class="btn sm" href="#chat-${w[0].id}">Reply</a>`:''}<a class="btn ghost sm" href="#item-${l.id}">View</a>
+      ${l.status!=='Sold'?`<button class="btn ghost sm" data-act="marksold" data-id="${l.id}">Mark sold</button>`:''}<button class="btn text sm" data-act="del" data-id="${l.id}">Delete</button></div></div>`}).join('')||'<div class="empty"><h3>No listings yet</h3><a class="btn" href="#sell">Sell your first item</a></div>'}</div>`;
+}
+function markSold(l,after){
+  const chats=S.threads.filter(t=>t.listing===l.id).length;
+  confirmBox(`Mark “${l.title}” as sold?`,`It will be removed from search${chats?` and ${chats} buyer${chats>1?'s':''} you're chatting with will see a Sold badge`:''}.`,'Mark as sold',false,()=>{
+    const old=l.status;l.status='Sold';rerender();toast('Marked as sold',()=>{l.status=old;rerender()});after&&after()});
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const a=e.target.closest('[data-act]');if(!a)return;
+  const act=a.dataset.act, id=a.dataset.id;
+  const T=()=>S.threads.find(t=>t.id===S.active);
+  switch(act){
+    case 'task':{const to=a.dataset.to;if(to==='sell'){S.sell.timers.forEach(clearTimeout);S.sell=newSell()}if(to==='inbox'){S.tab='selling';S.active=null}go(to);break}
+    case 'reset':S.sell.timers.forEach(clearTimeout);S=fresh();$('#q').value='';go('browse');toast('Prototype reset');break;
+    case 'open':if(e.target.closest('.heart'))return;go('item-'+id);break;
+    case 'save':{e.stopPropagation();const l=L(id);l.saved=!l.saved;
+      if(S.view==='browse')renderGrid();else rerender();
+      toast(l.saved?'Saved. You\'ll be notified if it sells or drops in price.':'Removed from saved',()=>{l.saved=!l.saved;S.view==='browse'?renderGrid():rerender()});break}
+    case 'fcat':S.f.cat=a.dataset.v;document.querySelectorAll('#fcat .chip').forEach(c=>c.setAttribute('aria-pressed',c===a));renderGrid();break;
+    case 'clearf':clearFilters();break;
+    case 'togglef':{const f=$('#filters');f.classList.toggle('open');a.setAttribute('aria-expanded',f.classList.contains('open'));break}
+    case 'rmchip':{const k=a.dataset.k,f=S.f;
+      if(k==='q'){f.q='';$('#q').value=''}else if(k==='cat')f.cat='All';else if(k==='max')f.max=150;else if(k==='dist')f.dist='any';else if(k==='pending')f.pending=true;else if(k==='saved')f.saved=false;else if(k.startsWith('cond:'))f.conds=f.conds.filter(c=>c!==k.slice(5));
+      rerender();break}
+    case 'view':{const i=+a.dataset.i;document.querySelectorAll('.gallery .thumbs button').forEach((b,j)=>b.setAttribute('aria-pressed',i===j));
+      const m=$('#mainimg .thumb');m.classList.remove('v0','v1','v2');m.classList.add('v'+i);break}
+    case 'quick':{const t=$('#dmsg');t.value=a.dataset.q;t.focus();break}
+    case 'sendfirst':{const text=$('#dmsg').value.trim();if(!text){toast('Write a message or pick a quick question.');$('#dmsg').focus();return}
+      const l=L(id),tid='t'+(S.nextId++);
+      S.threads.unshift({id:tid,listing:l.id,role:'buying',with:l.seller,waiting:0,unread:false,msgs:[{from:'me',text,time:'Just now',status:'sent'}],drafts:[],dstate:'none',di:0});
+      S.tab='buying';toast(`Message sent to ${l.seller}`);go('chat-'+tid);break}
+    case 'report':reportBox(a.dataset.what);break;
+    case 'sample':S.sell.photo=a.dataset.k;S.sell.file=null;startAnalysis();break;
+    case 'retryai':S.sell.timers.forEach(clearTimeout);S.sell.ai={};startAnalysis();break;
+    case 'manual':S.sell.timers.forEach(clearTimeout);S.sell.ctl&&S.sell.ctl.abort();S.sell.manual=true;S.sell.ai={};S.sell.step='review';rerender();break;
+    case 'another':S.sell.timers.forEach(clearTimeout);S.sell.ctl&&S.sell.ctl.abort();S.sell=newSell();if(S.view==='sell')rerender();else go('sell');break;
+    case 'usemid':{S.sell.f.price=a.dataset.v;$('#f-price').value=a.dataset.v;renderSuggest();toast(`Price set to $${a.dataset.v}. You can still change it.`);break}
+    case 'tab':S.tab=a.dataset.k;S.active=null;go('inbox');break;
+    case 'thread':go('chat-'+id);break;
+    case 'closechat':go('inbox');break;
+    case 'dsend':{const t=T();sendMsg(t,t.drafts[t.di],true);break}
+    case 'dedit':{const t=T();t.dstate='editing';rerender();const c=$('#cmsg');c.focus();c.setSelectionRange(c.value.length,c.value.length);break}
+    case 'ddiscard':{const t=T(),old=t.dstate;t.dstate='none';rerender();toast('Draft discarded',()=>{t.dstate=old;rerender()});break}
+    case 'dregen':{const t=T();t.dstate='loading';rerender();
+      setTimeout(()=>{if(S.aiFail)t.dstate='failed';else{t.di=t.drafts.length?(t.di+1)%t.drafts.length:0;if(!t.drafts.length)t.drafts=['Thanks for your message! The item is still available. When would you like to pick it up?'];t.dstate='ready'}if(S.view==='inbox'&&S.active===t.id)rerender()},1300);break}
+    case 'send':{const t=T();const ed=t.dstate==='editing';sendMsg(t,$('#cmsg').value,ed);break}
+    case 'status':{const t=T(),l=L(t.listing),s=a.dataset.s;if(l.status===s)return;
+      if(s==='Sold'){markSold(l);return}
+      const old=l.status;l.status=s;rerender();toast(s==='Pending'?'Marked pending. Other buyers see someone is ahead of them.':'Marked available',()=>{l.status=old;rerender()});break}
+    case 'marksold':markSold(L(id));break;
+    case 'del':{const l=L(id),chats=S.threads.filter(t=>t.listing===l.id).length;
+      confirmBox(`Delete “${l.title}”?`,`This can't be undone.${chats?` ${chats} buyer${chats>1?'s':''} in open chats will see the item is no longer available.`:''}`,'Delete listing',true,()=>{l.deleted=true;rerender();toast('Listing deleted')});break}
+  }
+});
+document.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('.card')){e.preventDefault();go('item-'+e.target.dataset.id)}
+  if(e.key==='Enter'&&!e.shiftKey&&e.target.id==='cmsg'){e.preventDefault();$('[data-act=send]').click()}
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q'){S.f.q=t.value;if(S.view!=='browse'){go('browse')}else renderGrid()}
+  if(t.id==='fmax'){S.f.max=+t.value;$('#fmaxv').textContent=S.f.max>=150?'Any price':'Up to $'+S.f.max;renderGrid()}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.matches('[data-fcond]')){S.f.conds=[...document.querySelectorAll('[data-fcond]:checked')].map(x=>x.value);renderGrid()}
+  if(t.id==='fdist'){S.f.dist=t.value;renderGrid()}
+  if(t.id==='fpend'){S.f.pending=t.checked;renderGrid()}
+  if(t.id==='fsaved'){S.f.saved=t.checked;renderGrid()}
+  if(t.id==='sort'){S.f.sort=t.value;renderGrid()}
+  if(t.id==='aifail'){S.aiFail=t.checked;toast(t.checked?'AI failure on: listing and reply drafts will fail':'AI failure off')}
+});
+route();
+</script>
+
+</body></html>
