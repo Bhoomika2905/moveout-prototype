@@ -11,7 +11,8 @@ The bar at the top of the page has task shortcuts, a **Simulate AI failure** tog
 ## Where to view it
 
 - **GitHub Pages:** `index.html` at the repo root (link in the repo's About section once Pages is on).
-- **claude.ai version:** same prototype, but there real uploaded photos are identified by AI. On GitHub Pages there is no AI connection, so uploading your own photo shows the "fill in by hand" fallback; the three sample photos work everywhere.
+- **claude.ai version:** same prototype, plus real photo recognition. On the Sell page, viewers choose **Allow Claude** to let the page read their uploaded photo with their own Claude account. If they decline, photo upload stays off and they use a sample photo or fill in the details by hand.
+- On GitHub Pages there is no connection to Claude, so photo upload is always off; the sample photos and hand entry work everywhere.
 
 ## Editing
 
